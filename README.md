@@ -16,8 +16,12 @@ the balloon and payload are physicalized. as parameters change, the view shows i
     - diameter of vent (circular valve like car intake)
     - speed of vent actuation
 2. launch the balloon (cut the tether)
-3. press space to open the vent
-4. press backspace to cut the balloon<->payload tether
+
+controls:
+- press `space` to open the balloon vent
+- press `backspace` to cut the balloon<->payload tether
+- press `p` to pause the simulation
+- press `enter` to step the simulation forward by one instant (when paused)
 
 goal: maximize flight time.
 
