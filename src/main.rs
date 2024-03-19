@@ -10,7 +10,8 @@ use bevy_xpbd_2d::{math::*, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 const TETHER_LENGTH: f32 = 100.0;
-const TETHER_THICKNESS: f32 = 1.2;
+const TETHER_THICKNESS: f32 = 3.0;
+const TETHER_LINK_RATIO: f32 = 4.0;
 const TETHER_COMPLIANCE: f32 = 0.00001;
 
 fn main() {
@@ -23,7 +24,7 @@ fn main() {
         ))
         .insert_resource(ClearColor(Color::rgb(0.05, 0.05, 0.1)))
         .insert_resource(SubstepCount(50))
-        .insert_resource(Gravity(Vector::NEG_Y * 1000.0))
+        .insert_resource(Gravity::default())
         .add_systems(Startup, setup_tether)
         .run();
 }
@@ -124,10 +125,11 @@ fn setup_tether(
     commands.spawn(Camera2dBundle::default());
 
     let particle_radius = TETHER_THICKNESS;
+    let particle_length = TETHER_THICKNESS * TETHER_LINK_RATIO;
     let particle_mesh: Mesh2dHandle = meshes
         .add(Capsule2d::new(
-            particle_radius as f32,
-            particle_radius * 4.0 as f32,
+            particle_radius,
+            particle_length,
         ))
         .into();
     let particle_material = materials.add(Color::rgb(0.9, 0.7, 0.2));
@@ -145,18 +147,18 @@ fn setup_tether(
         .id();
 
     // Spawn the rest of the particles, connecting each one to the previous one with joints
-    let num_joints = TETHER_LENGTH / (TETHER_THICKNESS * 4.0);
+    let num_joints = TETHER_LENGTH / particle_length;
     for i in 1..num_joints as i32 {
         let current_particle = commands
             .spawn((
                 RigidBody::Dynamic,
-                MassPropertiesBundle::new_computed(&Collider::circle(particle_radius), 1.0),
+                MassPropertiesBundle::new_computed(&Collider::capsule(particle_length, particle_radius), 1.0),
                 MaterialMesh2dBundle {
                     mesh: particle_mesh.clone(),
                     material: particle_material.clone(),
                     transform: Transform::from_xyz(
                         0.0,
-                        -i as f32 * (particle_radius as f32 * 2.0 + 1.0),
+                        -i as f32 * (particle_length + 1.0),
                         0.0,
                     ),
                     ..default()
@@ -166,7 +168,8 @@ fn setup_tether(
 
         commands.spawn(
             RevoluteJoint::new(previous_particle, current_particle)
-                .with_local_anchor_2(Vector::Y * (particle_radius * 2.0 + 1.0))
+                .with_local_anchor_1(Vector::Y * (particle_length * -0.5))
+                .with_local_anchor_2(Vector::Y * (particle_length * 0.5))
                 .with_compliance(TETHER_COMPLIANCE),
         );
 
